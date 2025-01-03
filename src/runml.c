@@ -70,10 +70,13 @@ int
 main(int argc, char **argv) {
 	if (argc<2) goto usage;
 
-	//printf("%d\n", (int)sizeof(char));
+	// TODO: HANDLE ARGS
 	struct arg *args=malloc(sizeof(arg));
 	util_loadScriptFromPath("../test/generic.txt", args);
 
+	// TODO: PARSE EACH LINE
+	// TODO: TRANSLATE TO C
+	// TODO: COMPILE AND RUN
 	for (int i=0;i<args->lines;i++) {
 		printf("%s",args->code[i]);
 	

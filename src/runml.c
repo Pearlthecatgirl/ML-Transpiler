@@ -28,15 +28,32 @@ util_loadScriptFromPath(char *fullpath) {
 			bytecount[lines]=0;
 		} else bytecount[lines]+=(sizeof(size_t)*1);
 	}
+	fseek(fptr, 0, SEEK_SET);
 
 	// Allocate according to the lines and bytes per line from previous..
 	char **output=malloc(sizeof(char *)*lines);
 	for (int i=0;i<lines;i++) {
-		printf("sizeof line: %d, line: %d\n", (int)bytecount[i], i);
+		//printf("sizeof line: %d, line: %d\n", (int)(bytecount[i]), i);
+		output[i]=malloc(sizeof(char)*bytecount[i]);
+		// If there is an error, we want to free all previous elements before freeing the array itself
+		if (!output[i]) {
+			for(int j=i;j>0;j--) free(output[j]);
+			goto util_Load_clean_output;
+		}
+		// Copy from file
+		fgets(output[i],sizeof(bytecount[i]), fptr);
+	}
+	
+	for(int i=0;i<lines;i++) {
+		printf("%s", output[i]);
+	
 	}
 
+	free(bytecount);
 	return output;	
 
+	util_Load_clean_output:
+	free(output);
 	util_Load_clean_bytecounter:
 	free(bytecount);
 	util_Load_Script_Fail:	
@@ -47,9 +64,10 @@ int
 main(int argc, char **argv) {
 	if (argc<2) goto usage;
 
+	//printf("%d\n", (int)sizeof(char));
 	util_loadScriptFromPath("../test/generic.txt");
 
 	return 0;
 	usage:
-	fprintf(stderr,"Usage : runml file.ml");
+	fprintf(stderr,"Usage : runml file.ml\n");
 }

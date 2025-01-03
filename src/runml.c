@@ -2,62 +2,68 @@
 #include <string.h>
 #include <stdlib.h>
 
-char **util_loadScriptFromPath(char *fullpath);
+//char **util_loadScriptFromPath(char *fullpath);
 
-char **
-util_loadScriptFromPath(char *fullpath) {
+struct arg {
+char **code;
+int lines;
+size_t *bcounter;
+} arg;
+
+void
+util_loadScriptFromPath(char *fullpath, struct arg *args) {
 	FILE *fptr;
 	if (!(fptr=fopen(fullpath, "r"))) {
 		fprintf(stderr, "fopen: ml file could not be opened. %d\n", 1);
 		goto util_Load_Script_Fail;
 	}
 	// Determine how many lines are in the file
-	int lines=0;
+	args->lines=0;
 	char current;
-	size_t *bytecount=calloc(1, sizeof(size_t)*1); // Calloc only used to save 1 line to set the first element to 0
+	args->bcounter=calloc(1, sizeof(size_t)*1); // Calloc only used to save 1 line to set the first element to 0
 	while (current!=EOF) {
 		current=fgetc(fptr);
 		if (current=='\n') {	
-			lines++;
-			// reallocate bytecount 
-			size_t *result=realloc(bytecount, sizeof(size_t)*lines+1);
+			args->lines++;
+			// reallocate args->bcounter 
+			size_t *result=realloc(args->bcounter, sizeof(size_t)*args->lines+1);
 			if (!result) {
 				fprintf(stderr, "Realloc: failed to reallocate byte counter"); 
-				goto util_Load_clean_bytecounter;
-			} bytecount=result;
-			bytecount[lines]=0;
-		} else bytecount[lines]+=(sizeof(size_t)*1);
+				goto util_Load_clean_bcounter;
+			} args->bcounter=result;
+			args->bcounter[args->lines]=0;
+		} else args->bcounter[args->lines]+=(sizeof(size_t)*1);
 	}
 	fseek(fptr, 0, SEEK_SET);
 
-	// Allocate according to the lines and bytes per line from previous..
-	char **output=malloc(sizeof(char *)*lines);
-	for (int i=0;i<lines;i++) {
-		//printf("sizeof line: %d, line: %d\n", (int)(bytecount[i]), i);
-		output[i]=malloc(sizeof(char)*bytecount[i]);
+	char **result=realloc(args->code, sizeof(char *)*args->lines);
+	if (!result) {
+		fprintf(stderr, "Realloc: failed to reallocate byte counter"); 
+		goto util_Load_clean_bcounter;
+	} args->code=result;
+
+	for (int i=0;i<args->lines;i++) {
+		//printf("sizeof line: %d, line: %d\n", (int)(args->bcounter[i]), i);
+		args->code[i]=malloc(sizeof(char)*args->bcounter[i]);
+
 		// If there is an error, we want to free all previous elements before freeing the array itself
-		if (!output[i]) {
-			for(int j=i;j>0;j--) free(output[j]);
-			goto util_Load_clean_output;
+		if (!args->code[i]) {
+			for(int j=i;j>0;j--) free(args->code[j]);
+			goto util_Load_clean_code;
 		}
 		// Copy from file
-		fgets(output[i],sizeof(bytecount[i]), fptr);
+		fgets(args->code[i],sizeof(args->bcounter[i]), fptr);
 	}
 	
-	for(int i=0;i<lines;i++) {
-		printf("%s", output[i]);
-	
-	}
+	return;	
 
-	free(bytecount);
-	return output;	
-
-	util_Load_clean_output:
-	free(output);
-	util_Load_clean_bytecounter:
-	free(bytecount);
+	util_Load_clean_code:
+	free(args->code);
+	util_Load_clean_bcounter:
+	free(args->bcounter);
 	util_Load_Script_Fail:	
-	return NULL;	
+	free(args);
+	return;	
 } 
 
 int
@@ -65,7 +71,14 @@ main(int argc, char **argv) {
 	if (argc<2) goto usage;
 
 	//printf("%d\n", (int)sizeof(char));
-	util_loadScriptFromPath("../test/generic.txt");
+	struct arg *args=malloc(sizeof(arg));
+	util_loadScriptFromPath("../test/generic.txt", args);
+
+	for (int i=0;i<args->lines;i++) {
+		printf("%s",args->code[i]);
+	
+		//printf("%d\n", (int)bytecount[i]);
+	}
 
 	return 0;
 	usage:

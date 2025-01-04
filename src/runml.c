@@ -5,21 +5,29 @@
 
 struct arg {
 	char **code;
-	int lines;
 	size_t *bcounter;
+	int lines;
+
+	// Identifier value, name and sizes for both
+	char **idval;
+	char **idname;
+	int *idnamesize;
+	int *idvalsize;
+	int idvalnum, idnamenum;
 } arg;
 
 int util_loadScriptFromPath(char *fullpath, struct arg *args);
 int util_parseMath(struct arg *args);
 int util_checkContains(const char *string, const char *contents);
+void util_cleanArgs(struct arg *args);
 
 int 
 util_loadScriptFromPath(char *fullpath, struct arg *args) {
 	FILE *fptr;
-	if (access(fullpath, F_OK)==-1) goto Util_Load_Script_Fail; 
+	if (access(fullpath, F_OK)==-1) return 0; 
 	if (!(fptr=fopen(fullpath, "r"))) {
 		fprintf(stderr, "fopen: ml file could not be opened. Code: %d\n", 1);
-		goto Util_Load_Script_Fail;
+		return 0;
 	}
 	// Determine how many lines are in the file
 	args->lines=0;
@@ -33,10 +41,11 @@ util_loadScriptFromPath(char *fullpath, struct arg *args) {
 			size_t *result=realloc(args->bcounter, sizeof(size_t)*args->lines+1);
 			if (!result) {
 				fprintf(stderr, "Realloc: failed to reallocate byte counter. Code: %d\n", 2); 
-				goto Util_Load_clean_bcounter;
+				return 0;
 			} args->bcounter=result;
 			args->bcounter[args->lines]=0;
 		} else args->bcounter[args->lines]+=(sizeof(size_t)*1);
+		//printf("%c : %ld\n",current, args->bcounter[args->lines]);
 	}
 
 	fseek(fptr, 0, SEEK_SET);
@@ -45,37 +54,64 @@ util_loadScriptFromPath(char *fullpath, struct arg *args) {
 	//printf("lines: %d\n", args->lines);
 	if (!result) {
 		fprintf(stderr, "Realloc: failed to reallocate byte counter. Code: %d\n", 2); 
-		goto Util_Load_clean_bcounter;
+		return 0;
 	} args->code=result;
 
 	for (int i=0;i<args->lines;i++) {
-		//printf("sizeof line: %d, line: %d\n", (int)(args->bcounter[i]), i);
+		//printf("sizeof line: %ld, line: %d\n", args->bcounter[i], i);
 		args->code[i]=malloc(sizeof(char)*args->bcounter[i]);
 		//printf("lines: %d\n", i);
 
 		// If there is an error, we want to free all previous elements before freeing the array itself
 		if (!args->code[i]) {
 			for(int j=i;j>0;j--) free(args->code[j]);
-			goto Util_Load_clean_code;
+			return 0;
 		}
 		// Copy from file
-		fgets(args->code[i],sizeof(args->bcounter[i]), fptr);
+		fgets(args->code[i],sizeof(char)*args->bcounter[i], fptr);
+		//printf("%s", args->code[i]);
 	}
 	
 	return 1;	
-
-	Util_Load_clean_code:
-	free(args->code);
-	Util_Load_clean_bcounter:
-	free(args->bcounter);
-	Util_Load_Script_Fail:	
-	free(args);
-	return 0;	
 } 
 
 int  
 util_parseMath(struct arg *args) {
+	// Loop through every line
+	char **output;
+
+	// Registering the name of the identifiers
+	char **idname=malloc(sizeof(char *)*1);
+	idname[0]="EOA";
+	int *idtype;
+	int idcount=1;
+	size_t *idsize;
+
+	char **current;
+
 	for (int i=0;i<args->lines;i++) {
+		char **result=realloc(current, sizeof(char)*args->bcounter[i]);
+		if (!result) {
+			fprintf(stderr, "Realloc: failed to reallocate byte counter. Code: %d\n", 2); 
+			// TODO: handle this later
+		} current=result;
+		// First word in the line 
+		if (!strcmp(strtok(args->code[i], " "), "function")) {
+			// check if the current identifier is already created
+			for (int i;i<idcount;i++) {
+				if (!strcmp(args->code[i+1], idname[i])) {
+					fprintf(stderr, "! runml: previous declaration of identifier\n");
+				}
+			}
+
+		} else if (!strcmp(strtok(args->code[i], " "), "print")) {
+		
+		} else if (!strcmp(strtok(args->code[i], " "), "#")) {
+
+		} else {
+		// Create new identifier or call identifier
+		
+		}
 
 
 	}
@@ -133,10 +169,8 @@ main(int argc, char **argv) {
 		if (!args->bcounter) goto clean_args_code_and_bcounter;
 	}
 
-
 	// TODO: TRANSLATE TO C
 	// TODO: COMPILE AND RUN
-
 
 	return 0;
 

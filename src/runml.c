@@ -5,10 +5,13 @@
 //char **util_loadScriptFromPath(char *fullpath);
 
 struct arg {
-char **code;
-int lines;
-size_t *bcounter;
+	char **code;
+	int lines;
+	size_t *bcounter;
 } arg;
+
+void util_loadScriptFromPath(char *fullpath, struct arg *args);
+void util_parseMath(struct arg *args);
 
 void
 util_loadScriptFromPath(char *fullpath, struct arg *args) {
@@ -68,15 +71,29 @@ util_loadScriptFromPath(char *fullpath, struct arg *args) {
 
 int
 main(int argc, char **argv) {
+	char *outputName;
 	if (argc<2) goto usage;
+	for (int i=0;i<argc;i++) {
+		if (!strcmp(argv[i], "-h")) {
+			goto usage;
+		} else if (!strcmp(argv[i], "-o")) {
+			// Create a temporary buffer for storing the output name before memory allocation
+			char tmpbuffer[1024];
+			strncpy(tmpbuffer, argv[++i], sizeof(char)*1024);
+			//outputLength=strlen(tmpbuffer);
+			outputName=malloc(sizeof(char)*strlen(tmpbuffer));
+			strncpy(outputName, tmpbuffer, sizeof(char)*strlen(tmpbuffer));
+		}
+		else goto usage;
+	}
 
-	// TODO: HANDLE ARGS
 	struct arg *args=malloc(sizeof(arg));
 	util_loadScriptFromPath("../test/generic.txt", args);
 
 	// TODO: PARSE EACH LINE
 	// TODO: TRANSLATE TO C
 	// TODO: COMPILE AND RUN
+
 	for (int i=0;i<args->lines;i++) {
 		printf("%s",args->code[i]);
 	

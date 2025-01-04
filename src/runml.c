@@ -11,6 +11,7 @@ struct arg {
 
 void util_loadScriptFromPath(char *fullpath, struct arg *args);
 void util_parseMath(struct arg *args);
+int util_checkContains(const char *string, const char *contents);
 
 void
 util_loadScriptFromPath(char *fullpath, struct arg *args) {
@@ -80,7 +81,7 @@ util_parseMath(struct arg *args) {
 }
 
 int 
-checkContains(const char *string, const char *contents) {
+util_checkContains(const char *string, const char *contents) {
 	char *occurrence;
 	if ((occurrence=strrchr(string,*contents))!=NULL) {
 		if (!strcmp(occurrence, contents)) {
@@ -112,7 +113,7 @@ main(int argc, char **argv) {
 			fprintf(stderr,"unrecognised option :\"%s\"\n", argv[i]);
 			goto usage;
 			}
-		} else if (checkContains(argv[i], ".ml")) {
+		} else if (util_checkContains(argv[i], ".ml")) {
 			strncpy(fullpath, argv[i], sizeof(char)*strlen(argv[i]));
 		} else fprintf(stderr,"unrecognised option :\"%s\"\n", argv[i]);
 	}

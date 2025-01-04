@@ -59,7 +59,7 @@ util_loadScriptFromPath(char *fullpath, struct arg *args) {
 
 	for (int i=0;i<args->lines;i++) {
 		//printf("sizeof line: %ld, line: %d\n", args->bcounter[i], i);
-		args->code[i]=malloc(sizeof(char)*args->bcounter[i]);
+		args->code[i]=malloc(args->bcounter[i]);
 		//printf("lines: %d\n", i);
 
 		// If there is an error, we want to free all previous elements before freeing the array itself
@@ -68,7 +68,7 @@ util_loadScriptFromPath(char *fullpath, struct arg *args) {
 			return 0;
 		}
 		// Copy from file
-		fgets(args->code[i],sizeof(char)*args->bcounter[i], fptr);
+		fgets(args->code[i],args->bcounter[i], fptr);
 		//printf("%s", args->code[i]);
 	}
 	
@@ -88,21 +88,41 @@ util_parseMath(struct arg *args) {
 	size_t *idsize;
 
 	char **current;
+	for (int i=0;i<args->lines;i++) {
+		printf("%ld\n", args->bcounter[i]);
+	}
 
 	for (int i=0;i<args->lines;i++) {
-		char **result=realloc(current, sizeof(char)*args->bcounter[i]);
-		if (!result) {
-			fprintf(stderr, "Realloc: failed to reallocate byte counter. Code: %d\n", 2); 
-			// TODO: handle this later
-		} current=result;
+		//    char **result=realloc(current, sizeof(char)*args->bcounter[i]);
+		//    if (!result) {
+		//    	fprintf(stderr, "Realloc: failed to reallocate byte counter. Code: %d\n", 2); 
+		//    	// TODO: handle this later
+		//    	return 1;
+		//    } current=result;
+
+		
+		
 		// First word in the line 
 		if (!strcmp(strtok(args->code[i], " "), "function")) {
 			// check if the current identifier is already created
 			for (int i;i<idcount;i++) {
 				if (!strcmp(args->code[i+1], idname[i])) {
 					fprintf(stderr, "! runml: previous declaration of identifier\n");
-				}
+				} 
 			}
+			// Add to identifier registery
+		idcount++;
+		char **tmp_reallocRes=realloc(idname, sizeof(char *) *(idcount+1));
+		if (!tmp_reallocRes) {
+			fprintf(stderr, "Realloc: failed to reallocate identifier registry. Code: %d\n", 2); 
+			// TODO: handle this later	
+		} idname=tmp_reallocRes;
+		size_t *tmp_reallocRes2=realloc(idsize, sizeof(size_t) * (idcount+1));
+		if (!tmp_reallocRes2) {
+			fprintf(stderr, "Realloc: failed to reallocate identifier size registry. Code: %d\n", 2); 
+			// TODO: handle this later	
+		} idsize=tmp_reallocRes2;
+
 
 		} else if (!strcmp(strtok(args->code[i], " "), "print")) {
 		
@@ -116,6 +136,7 @@ util_parseMath(struct arg *args) {
 
 	}
 	return 0;
+	// Clean out all mallocs made here
 }
 
 int 

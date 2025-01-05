@@ -83,7 +83,7 @@ util_parseMath(struct arg *args) {
 	// Registering the name of the identifiers
 	char **idname=malloc(sizeof(char *)*1);
 	idname[0]="EOA";
-	short *idtype; //0->variable 1->function
+	short *idtype=malloc(sizeof(short)*1); //0->variable 1->function
 	int idcount=1;
 	size_t *idsize=calloc(1,sizeof(size_t));
 
@@ -99,26 +99,36 @@ util_parseMath(struct arg *args) {
 			// check if the current identifier is already created
 			for (int i;i<idcount;i++) {
 				if (!strcmp(current, idname[i])) {
-					fprintf(stderr, "! runml: previous declaration of identifier\n");
+					fprintf(stderr, "! runml: previous declaration of identifier (line: %d)\n", args->lines);
+					// Handle this later
 				} 
 			}
 			// Add to identifier registery
 		resize_ret_code=1; // Sets the return code so the program knows to return here on function
 		goto Util_Parse_Math_AddToCount; // Reallocates the size of each, and then returns to this line
 		Util_Parse_math_Return_Function:
+
 		idsize[idcount-1]=strlen(current);
 		idname[idcount-1]=malloc(idsize[idcount-1]);
-		strncpy(idname[idcount-1], current, idsize[idcount-1]);
-		idtype[idcount-1]=1;
+		if (strncpy(idname[idcount-1], current, idsize[idcount-1])) {
+		
+		}
+		//idtype[idcount-1]=1;
 
 		} else if (!strcmp(strtok(args->code[i], " "), "print")) {
 			current=strtok(NULL, " ");
 			// check if the current identifier is already created
+			char found='0';	
 			for (int i;i<idcount;i++) {
-				if (!strcmp(current, idname[i])) goto identifier_found;
+				if (!strcmp(current, idname[i])) {
+					found='1';
+					break;
+				}
 			} 
+			if (found=='0') {
+				fprintf(stderr, "! runml: undefined identifie after print (line: %d)\n", args->lines);
 			
-			identifier_found:
+			}
 		
 		} else if (!strcmp(strtok(args->code[i], " "), "#")) {
 			// Line starts with a comment
@@ -129,7 +139,7 @@ util_parseMath(struct arg *args) {
 			// check if the current identifier is already created
 			for (int i;i<idcount;i++) {
 				if (!strcmp(current, idname[i])) {
-					fprintf(stderr, "! runml: previous declaration of identifier\n");
+					fprintf(stderr, "! runml: previous declaration of identifier (line: %d)\n", args->lines);
 				}
 			}
 			resize_ret_code=0;
@@ -140,8 +150,6 @@ util_parseMath(struct arg *args) {
 			strncpy(idname[idcount-1], current, idsize[idcount-1]);
 			idtype[idcount-1]=0;
 		}
-
-
 	}
 	return 1;
 	// Clean out all mallocs made here
@@ -152,7 +160,6 @@ util_parseMath(struct arg *args) {
 	Util_Parse_Math_Clean_Identifier_Size:
 	free(idsize);
 	idcount=0;
-
 	return 0;
 
 	Util_Parse_Math_AddToCount:
@@ -172,6 +179,7 @@ util_parseMath(struct arg *args) {
 			fprintf(stderr, "Realloc: failed to reallocate identifier type registry. Code: %d\n", 2); 
 			// TODO: handle this later	
 		} idtype=tmp_reallocRes3;
+		idtype[idcount-1]=0;
 		switch (resize_ret_code) {
 			case 1:
 				goto Util_Parse_math_Return_Function;

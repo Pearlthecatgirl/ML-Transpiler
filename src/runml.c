@@ -85,12 +85,12 @@ util_parseMath(struct arg *args) {
 	idname[0]="EOA";
 	int *idtype;
 	int idcount=1;
-	size_t *idsize;
+	size_t *idsize=calloc(1,sizeof(size_t));
 
 	char **current;
-	for (int i=0;i<args->lines;i++) {
-		printf("%ld\n", args->bcounter[i]);
-	}
+	// for (int i=0;i<args->lines;i++) {
+	// 	printf("%ld\n", args->bcounter[i]);
+	// }
 
 	for (int i=0;i<args->lines;i++) {
 		//    char **result=realloc(current, sizeof(char)*args->bcounter[i]);
@@ -99,14 +99,14 @@ util_parseMath(struct arg *args) {
 		//    	// TODO: handle this later
 		//    	return 1;
 		//    } current=result;
-
-		
 		
 		// First word in the line 
-		if (!strcmp(strtok(args->code[i], " "), "function")) {
+		char *current=strtok(args->code[i], " ");
+		if (!strcmp(current, "function")) {
+			current=strtok(NULL, " ");
 			// check if the current identifier is already created
 			for (int i;i<idcount;i++) {
-				if (!strcmp(args->code[i+1], idname[i])) {
+				if (!strcmp(current, idname[i])) {
 					fprintf(stderr, "! runml: previous declaration of identifier\n");
 				} 
 			}
@@ -122,14 +122,17 @@ util_parseMath(struct arg *args) {
 			fprintf(stderr, "Realloc: failed to reallocate identifier size registry. Code: %d\n", 2); 
 			// TODO: handle this later	
 		} idsize=tmp_reallocRes2;
-
+		// Save the size and name of each identifier
+		idsize[idcount-1]=strlen(current);
+		idname[idcount-1]=malloc(idsize[idcount-1]);
+		strncpy(idname[idcount-1], current, idsize[idcount-1]);
 
 		} else if (!strcmp(strtok(args->code[i], " "), "print")) {
 		
 		} else if (!strcmp(strtok(args->code[i], " "), "#")) {
 
 		} else {
-		// Create new identifier or call identifier
+		// Create new variable identifier or call identifier
 		
 		}
 

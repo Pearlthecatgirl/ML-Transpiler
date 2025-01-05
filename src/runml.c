@@ -79,27 +79,19 @@ int
 util_parseMath(struct arg *args) {
 	// Loop through every line
 	char **output;
-
+	int resize_ret_code=0;
 	// Registering the name of the identifiers
 	char **idname=malloc(sizeof(char *)*1);
 	idname[0]="EOA";
-	int *idtype;
+	short *idtype; //0->variable 1->function
 	int idcount=1;
 	size_t *idsize=calloc(1,sizeof(size_t));
 
-	char **current;
 	// for (int i=0;i<args->lines;i++) {
 	// 	printf("%ld\n", args->bcounter[i]);
 	// }
 
 	for (int i=0;i<args->lines;i++) {
-		//    char **result=realloc(current, sizeof(char)*args->bcounter[i]);
-		//    if (!result) {
-		//    	fprintf(stderr, "Realloc: failed to reallocate byte counter. Code: %d\n", 2); 
-		//    	// TODO: handle this later
-		//    	return 1;
-		//    } current=result;
-		
 		// First word in the line 
 		char *current=strtok(args->code[i], " ");
 		if (!strcmp(current, "function")) {
@@ -111,6 +103,59 @@ util_parseMath(struct arg *args) {
 				} 
 			}
 			// Add to identifier registery
+		resize_ret_code=1; // Sets the return code so the program knows to return here on function
+		goto Util_Parse_Math_AddToCount; // Reallocates the size of each, and then returns to this line
+		Util_Parse_math_Return_Function:
+		idsize[idcount-1]=strlen(current);
+		idname[idcount-1]=malloc(idsize[idcount-1]);
+		strncpy(idname[idcount-1], current, idsize[idcount-1]);
+		idtype[idcount-1]=1;
+
+		} else if (!strcmp(strtok(args->code[i], " "), "print")) {
+			current=strtok(NULL, " ");
+			// check if the current identifier is already created
+			for (int i;i<idcount;i++) {
+				if (!strcmp(current, idname[i])) goto identifier_found;
+			} 
+			
+			identifier_found:
+		
+		} else if (!strcmp(strtok(args->code[i], " "), "#")) {
+			// Line starts with a comment
+
+		} else {
+			// Create new variable identifier or call identifier
+			current=strtok(NULL, " ");
+			// check if the current identifier is already created
+			for (int i;i<idcount;i++) {
+				if (!strcmp(current, idname[i])) {
+					fprintf(stderr, "! runml: previous declaration of identifier\n");
+				}
+			}
+			resize_ret_code=0;
+			goto Util_Parse_Math_AddToCount;
+			Util_Parse_math_Return_Variable:
+			idsize[idcount-1]=strlen(current);
+			idname[idcount-1]=malloc(idsize[idcount-1]);
+			strncpy(idname[idcount-1], current, idsize[idcount-1]);
+			idtype[idcount-1]=0;
+		}
+
+
+	}
+	return 1;
+	// Clean out all mallocs made here
+	Util_Parse_Math_Clean_Identifier_Name_Register:
+	for (int i=idcount;i>0;i--) free(idname[i]);
+	Util_Parse_Math_Clean_Identifier_Name:
+	free(idname);
+	Util_Parse_Math_Clean_Identifier_Size:
+	free(idsize);
+	idcount=0;
+
+	return 0;
+
+	Util_Parse_Math_AddToCount:
 		idcount++;
 		char **tmp_reallocRes=realloc(idname, sizeof(char *) *(idcount+1));
 		if (!tmp_reallocRes) {
@@ -122,24 +167,22 @@ util_parseMath(struct arg *args) {
 			fprintf(stderr, "Realloc: failed to reallocate identifier size registry. Code: %d\n", 2); 
 			// TODO: handle this later	
 		} idsize=tmp_reallocRes2;
-		// Save the size and name of each identifier
-		idsize[idcount-1]=strlen(current);
-		idname[idcount-1]=malloc(idsize[idcount-1]);
-		strncpy(idname[idcount-1], current, idsize[idcount-1]);
-
-		} else if (!strcmp(strtok(args->code[i], " "), "print")) {
-		
-		} else if (!strcmp(strtok(args->code[i], " "), "#")) {
-
-		} else {
-		// Create new variable identifier or call identifier
-		
+		short *tmp_reallocRes3=realloc(idtype, sizeof(short) * (idcount+1));
+		if (!tmp_reallocRes3) {
+			fprintf(stderr, "Realloc: failed to reallocate identifier type registry. Code: %d\n", 2); 
+			// TODO: handle this later	
+		} idtype=tmp_reallocRes3;
+		switch (resize_ret_code) {
+			case 1:
+				goto Util_Parse_math_Return_Function;
+				break;
+			case 0:
+				goto Util_Parse_math_Return_Variable;
+				break;
+			default:
+				break;
 		}
-
-
-	}
-	return 0;
-	// Clean out all mallocs made here
+		return 0;
 }
 
 int 

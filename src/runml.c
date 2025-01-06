@@ -56,7 +56,7 @@ util_checkContains(const char *string, const char *contents) {
 }
 
 int 
-util_loadScript(const char *fullpath, char **script, size_t *script_sizev, int script_len) {
+util_loadScript(const char *fullpath, struct arg *args) {
 	FILE *fptr;
 	// Check File existence
 	if (access(fullpath, R_OK==-1)) {
@@ -69,51 +69,56 @@ util_loadScript(const char *fullpath, char **script, size_t *script_sizev, int s
 	}
 	// Count number of lines
 	char cursor;
-	script_len=0;
+	args->script_len=0;
 
 	cursor=fgetc(fptr);
 	while (1) {
 		if (feof(fptr)) break;
-		if (cursor=='\n') script_len++; 
+		if (cursor=='\n') args->script_len++; 
 		cursor=fgetc(fptr);
 	}
 
 	fseek(fptr, 0, SEEK_SET);
-	char **res=realloc(script, sizeof(char *) *script_len);
+	char **res=realloc(args->script, sizeof(char *) *args->script_len);
 	if (!res) {
 		fprintf(stderr, "realloc: script resize failed. Code %d\n", 3);
 		goto Util_loadScript_Ret_fail;
-	} script=res;
-	size_t *res2=realloc(script_sizev, sizeof(size_t)*script_len);
+	} args->script=res;
+	size_t *res2=realloc(args->script_sizev, sizeof(size_t)*args->script_len);
 	if (!res2) {
 		fprintf(stderr, "realloc: script_size vector resize failed. Code: %d\n", 4);
 		goto Util_loadScript_Ret_fail;
-	} script_sizev=res2;
+	} args->script_sizev=res2;
 
 	#define BUFMAX 256
 	char buf[BUFMAX];
-	for (int currentLine=0;currentLine<script_len;currentLine++) {
-
+	for (int currentLine=0;currentLine<args->script_len;currentLine++) {
 		if (!fgets(buf, BUFMAX, fptr)) {
 			fprintf(stderr, "fgets: failed to get line. Cleaning script vector. Code: %d\n", 5);
 			goto Util_loadScript_clean_script_contents;
 		}
 		int currentlen=strlen(buf);
-		script[currentLine]=malloc(sizeof(char)*currentlen);
-		if (!script[currentLine]) {
+		args->script[currentLine]=malloc(sizeof(char)*currentlen);
+		if (!args->script[currentLine]) {
 			fprintf(stderr, "malloc: failed to initialise current line in the script vector. Code: %d\n", 6);
 			goto Util_loadScript_clean_script_contents;	
 		}
-		script_sizev[currentLine]=sizeof(size_t)*currentlen;
-		Util_loadScript_clean_script_contents:
-		for (int currentLineRev=currentLine;currentLineRev>0;currentLineRev--) {
-			free(script[currentLineRev]);
-			script_sizev[currentLineRev]=(size_t)0;
-			script_len--;
+		args->script_sizev[currentLine]=sizeof(size_t)*currentlen;
+		if (!strncpy(args->script[currentLine], buf, currentlen)) {
+			goto Util_loadScript_clean_script_contents;
 		}
-		return 0;
+
+		if (0) {
+			Util_loadScript_clean_script_contents:
+			for (int currentLineRev=currentLine;currentLineRev>0;currentLineRev--) {
+				free(args->script[currentLineRev]);
+				args->script_sizev[currentLineRev]=(size_t)0;
+				args->script_len--;
+			}
+			return 0;
+		}
 	}
-	#undef BUFMAX
+	//#undef BUFMAX
 
 	fclose(fptr);
 	return 1;
@@ -147,12 +152,16 @@ main(int argc, char **argv) {
 	args->script=malloc(sizeof(char *) * args->script_len);
 	args->script_sizev=malloc(sizeof(size_t) * args->script_len);
 
-	if (!util_loadScript(fullpath, args->script, args->script_sizev, args->script_len)) goto clean_args_script;
+	if (!util_loadScript(fullpath, args)) goto clean_args_script;
 	
+	//for (int i=0;i<args->script_len;i++) {
+	//printf("%s", args->script[i]);
+	//}
 
 	//if (!util_parseMath(args->script, args->script_size)) {
 	//	return 1;
 	//}
+
 	// TODO: read from file
 	// TODO: parse file
 	// TODO: generate c file

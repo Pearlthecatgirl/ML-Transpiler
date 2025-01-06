@@ -70,7 +70,13 @@ util_loadScript(const char *fullpath, char **script, size_t *script_sizev, int s
 	// Count number of lines
 	char cursor;
 	script_len=0;
-	for (cursor=fgetc(fptr); cursor!='\0'; cursor=fgetc(fptr)) if (cursor=='\n') script_len++;
+
+	cursor=fgetc(fptr);
+	while (1) {
+		if (feof(fptr)) break;
+		if (cursor=='\n') script_len++; 
+		cursor=fgetc(fptr);
+	}
 
 	fseek(fptr, 0, SEEK_SET);
 	char **res=realloc(script, sizeof(char *) *script_len);
@@ -87,6 +93,7 @@ util_loadScript(const char *fullpath, char **script, size_t *script_sizev, int s
 	#define BUFMAX 256
 	char buf[BUFMAX];
 	for (int currentLine=0;currentLine<script_len;currentLine++) {
+
 		if (!fgets(buf, BUFMAX, fptr)) {
 			fprintf(stderr, "fgets: failed to get line. Cleaning script vector. Code: %d\n", 5);
 			goto Util_loadScript_clean_script_contents;
@@ -100,18 +107,17 @@ util_loadScript(const char *fullpath, char **script, size_t *script_sizev, int s
 		script_sizev[currentLine]=sizeof(size_t)*currentlen;
 		Util_loadScript_clean_script_contents:
 		for (int currentLineRev=currentLine;currentLineRev>0;currentLineRev--) {
-			free(script[currentLine]);
-			
-		
+			free(script[currentLineRev]);
+			script_sizev[currentLineRev]=(size_t)0;
+			script_len--;
 		}
+		return 0;
 	}
 	#undef BUFMAX
 
 	fclose(fptr);
 	return 1;
 
-	Util_loadScript_clean_script:
-	free(script);
 	Util_loadScript_Ret_fail:
 	return 0;
 }
@@ -159,7 +165,7 @@ return 0;
 	return 1;
 
 	clean_args_script:
-	free(args->script);
+	free(args);
 	return 1;
 }
 

@@ -9,13 +9,36 @@ struct arg {
 	int *id_typev;
 	int idc;
 	
-	char *script;
+	char **script;
+	size_t *script_sizev;
+	int script_len;
 } arg;
 
+int util_checkContains(const char *string, const char *contents);
+
 int
-util_parseMath(const char script) {
+util_parseMath(char *script, int script_size) {
+	enum nodeType {Expression, Function, Assignment} nodeType;
 
 
+	// while (!reached_Bottom_of_Tree) {
+	// 	nodeType=Expression;
+	// 	switch (nodeType) {
+	// 		case Expression:
+	// 			// Determine if there are parenthesis
+
+	// 			break;
+	// 		case Function:
+	// 			// read until out of scope (\t)
+	// 			break;
+	// 		case Assignment:
+	// 			// Make sure left side only has 1 variable
+	// 			break;
+	// 		default: 
+	// 			break;	
+	// 	}
+	// }
+	
 	return 1;
 }
 
@@ -33,8 +56,9 @@ util_checkContains(const char *string, const char *contents) {
 }
 
 int 
-util_loadScript(const char *fullpath, char *script) {
+util_loadScript(const char *fullpath, char **script, size_t *script_sizev, int script_len) {
 	FILE *fptr;
+	// Check File existence
 	if (access(fullpath, R_OK==-1)) {
 		fprintf(stderr, "access: file (%s) either does not exist, or you do not have the permission to read from it. Code: %d\n", fullpath, 1);
 		return 0;
@@ -43,27 +67,53 @@ util_loadScript(const char *fullpath, char *script) {
 		fprintf(stderr, "fopen: file (%s) could not be opened Code: %d\n", fullpath, 2);
 		return 0;	
 	}
-	// Get the size of the file for malloc
-	fseek(fptr, 0, SEEK_END);
-	size_t size_of_file=ftell(fptr);
-	fseek(fptr, 0, SEEK_SET);
-	
-	char *result=realloc(script, size_of_file * sizeof(char));
-	if (!result) {
-		return 0;
-	} script=result;
+	// Count number of lines
+	char cursor;
+	script_len=0;
+	for (cursor=fgetc(fptr); cursor!='\0'; cursor=fgetc(fptr)) if (cursor=='\n') script_len++;
 
-	if (fread(script, size_of_file, 1, fptr)!=1) {
-		fprintf(stderr, "fread: size read from is different from size requested. Code: %d\n", 3);
-		goto Util_loadScript_clean_script;
+	fseek(fptr, 0, SEEK_SET);
+	char **res=realloc(script, sizeof(char *) *script_len);
+	if (!res) {
+		fprintf(stderr, "realloc: script resize failed. Code %d\n", 3);
+		goto Util_loadScript_Ret_fail;
+	} script=res;
+	size_t *res2=realloc(script_sizev, sizeof(size_t)*script_len);
+	if (!res2) {
+		fprintf(stderr, "realloc: script_size vector resize failed. Code: %d\n", 4);
+		goto Util_loadScript_Ret_fail;
+	} script_sizev=res2;
+
+	#define BUFMAX 256
+	char buf[BUFMAX];
+	for (int currentLine=0;currentLine<script_len;currentLine++) {
+		if (!fgets(buf, BUFMAX, fptr)) {
+			fprintf(stderr, "fgets: failed to get line. Cleaning script vector. Code: %d\n", 5);
+			goto Util_loadScript_clean_script_contents;
+		}
+		int currentlen=strlen(buf);
+		script[currentLine]=malloc(sizeof(char)*currentlen);
+		if (!script[currentLine]) {
+			fprintf(stderr, "malloc: failed to initialise current line in the script vector. Code: %d\n", 6);
+			goto Util_loadScript_clean_script_contents;	
+		}
+		script_sizev[currentLine]=sizeof(size_t)*currentlen;
+		Util_loadScript_clean_script_contents:
+		for (int currentLineRev=currentLine;currentLineRev>0;currentLineRev--) {
+			free(script[currentLine]);
+			
+		
+		}
 	}
+	#undef BUFMAX
+
 	fclose(fptr);
 	return 1;
 
 	Util_loadScript_clean_script:
 	free(script);
+	Util_loadScript_Ret_fail:
 	return 0;
-
 }
 
 int
@@ -87,12 +137,16 @@ main(int argc, char **argv) {
 		}
 	}
 	struct arg *args=malloc(sizeof(arg));
-	args->script=malloc(sizeof(char));
+	args->script_len=1;
+	args->script=malloc(sizeof(char *) * args->script_len);
+	args->script_sizev=malloc(sizeof(size_t) * args->script_len);
 
-	if (!util_loadScript(fullpath, args->script)) {
-		goto clean_args_script;
-	}
+	if (!util_loadScript(fullpath, args->script, args->script_sizev, args->script_len)) goto clean_args_script;
+	
 
+	//if (!util_parseMath(args->script, args->script_size)) {
+	//	return 1;
+	//}
 	// TODO: read from file
 	// TODO: parse file
 	// TODO: generate c file
@@ -103,6 +157,10 @@ return 0;
 	usage:
 	fprintf(stderr,"Usage : runml [-hv] [file.ml] [-o output_name]\nProgram returns 0 on success, 1 on fail. Read the stderr code for issue.\nCode: %d\n", 0);
 	return 1;
+
 	clean_args_script:
 	free(args->script);
+	return 1;
 }
+
+//Nothing to see here :3

@@ -17,31 +17,33 @@ struct arg {
 } arg;
 
 int util_checkContains(const char *string, const char *contents);
+int util_checkContains_r(const char *string, const char letter);
 
 int
 util_parseMath(struct arg *args) {
 	char *current;
 	// Outer loop
 	for (int i=0;i<args->script_len;i++) {
-		current=strtok(args->script[i], " ");
-		if (!strncmp(args->script[i], "#", 1)) continue; 
+		//current=strtok(args->script[i], " ");
+		if (args->script[i][0]==35) continue; 
 
-		fprintf(stdout, "test: %s\n",args->script[i]);
+			//fprintf(stdout, "%s, %d", args->script[i], util_checkContains_r(args->script[i], ' '));
 		// Check for a space first before trying to tokenize
-		if (util_checkContains(args->script[i], " ")) {
+		if (util_checkContains_r(args->script[i], ' ')) {
 			current=strtok(args->script[i], " ");
 			if (!strcmp(current, "function")) {
 					current=strtok(NULL, " ");
-					printf("test\n");
-					printf("current: %s", current);
+					// Check if it is already an identifier
 			}
 		// there is no space. just compare it
 		} else {
 				if (!strncmp(args->script[i], "function", strlen("function"))) {
 						if (strlen(args->script[i])>strlen("function")) {
 							fprintf(stderr, "! runml: Error: spotted \"function\" with more letters behind it. Are you missing a space? \n");
+							return 1;
 						} else {
 							fprintf(stderr, "! runml: Error: spotted \"function\" with no identifier behind it. Is this an identifier? \n");
+							return 1;
 						}
 				}
 		}
@@ -55,7 +57,7 @@ util_parseMath(struct arg *args) {
 				// Access current here, before reassigning via strtok
 				//fprintf(stdout,"%s\n", current);
 
-				if (util_checkContains(current, "\n")) break;
+				if (util_checkContains_r(current, '\n')) break;
 				current=strtok(NULL, " ");
 		}
 	}
@@ -74,6 +76,14 @@ util_checkContains(const char *string, const char *contents) {
 	}
 	// does not exist
 	return 0;
+}
+
+int
+util_checkContains_r(const char *string, const char letter) {
+		for (int i=0;i<strlen(string);i++) {
+				if (string[i]==letter) return 1;
+		}
+		return 0;
 }
 
 int 

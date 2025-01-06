@@ -3,6 +3,8 @@
 #include <string.h>
 #include <unistd.h>
 
+enum nodeType {Expression, Function, Assignment} nodeType;
+
 struct arg {
 	char **id_namev;
 	size_t *id_sizev;
@@ -17,28 +19,47 @@ struct arg {
 int util_checkContains(const char *string, const char *contents);
 
 int
-util_parseMath(char *script, int script_size) {
-	enum nodeType {Expression, Function, Assignment} nodeType;
+util_parseMath(struct arg *args) {
+	char *current;
+	// Outer loop
+	for (int i=0;i<args->script_len;i++) {
+		current=strtok(args->script[i], " ");
+		if (!strncmp(args->script[i], "#", 1)) continue; 
 
+		fprintf(stdout, "test: %s\n",args->script[i]);
+		// Check for a space first before trying to tokenize
+		if (util_checkContains(args->script[i], " ")) {
+			current=strtok(args->script[i], " ");
+			if (!strcmp(current, "function")) {
+					current=strtok(NULL, " ");
+					printf("test\n");
+					printf("current: %s", current);
+			}
+		// there is no space. just compare it
+		} else {
+				if (!strncmp(args->script[i], "function", strlen("function"))) {
+						if (strlen(args->script[i])>strlen("function")) {
+							fprintf(stderr, "! runml: Error: spotted \"function\" with more letters behind it. Are you missing a space? \n");
+						} else {
+							fprintf(stderr, "! runml: Error: spotted \"function\" with no identifier behind it. Is this an identifier? \n");
+						}
+				}
+		}
 
-	// while (!reached_Bottom_of_Tree) {
-	// 	nodeType=Expression;
-	// 	switch (nodeType) {
-	// 		case Expression:
-	// 			// Determine if there are parenthesis
+		/* Only skip the line if the first character is a #. Otherwise we can have such cases:
+		 * function args # comment <- such line would be skipped
+		 * */
 
-	// 			break;
-	// 		case Function:
-	// 			// read until out of scope (\t)
-	// 			break;
-	// 		case Assignment:
-	// 			// Make sure left side only has 1 variable
-	// 			break;
-	// 		default: 
-	// 			break;	
-	// 	}
-	// }
-	
+		
+		while (1)	{
+				// Access current here, before reassigning via strtok
+				//fprintf(stdout,"%s\n", current);
+
+				if (util_checkContains(current, "\n")) break;
+				current=strtok(NULL, " ");
+		}
+	}
+
 	return 1;
 }
 
@@ -158,9 +179,9 @@ main(int argc, char **argv) {
 	//printf("%s", args->script[i]);
 	//}
 
-	//if (!util_parseMath(args->script, args->script_size)) {
-	//	return 1;
-	//}
+	if (!util_parseMath(args)) {
+		return 1;
+	}
 
 	// TODO: read from file
 	// TODO: parse file

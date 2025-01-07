@@ -22,7 +22,7 @@ int util_checkContains_r(const char *string, const char letter);
 int
 util_parseMath(struct arg *args) {
 	char *current;
-
+	short realloc_ret_code;
 	// Init identifiers
 	args->idc=1;
 	args->id_namev=malloc(sizeof(char *)*args->idc);
@@ -37,7 +37,7 @@ util_parseMath(struct arg *args) {
 	}
 	args->id_sizev=malloc(sizeof(size_t)*args->idc);
 	if (!args->id_sizev) {
-		fprintf(stderr, "Malloc: failed to allocate space for identifier type vector. Code %d", 8);
+		fprintf(stderr, "Malloc: failed to allocate space for identifier type vector. Code %d", 9);
 		goto Util_parseMath_clean_id_typev;
 	}
 	// TODO: clean the malloc later
@@ -74,8 +74,11 @@ util_parseMath(struct arg *args) {
 						goto Util_parseMath_clean_id_namev_contents;
 					}
 					else {
-					// return for now	
-					fprintf(stdout, "new variable. adding \"%s\" to the identifier registry\n", current);
+						// return for now	
+						fprintf(stdout, "new variable. adding \"%s\" to the identifier registry\n", current);
+						realloc_ret_code=1;
+						goto Util_parseMath_realloc_add;
+						REALLOC_RET_CODE_1:
 					}
 				}
 				// Check if it is already an identifier
@@ -98,13 +101,14 @@ util_parseMath(struct arg *args) {
 		 * */
 
 		
-		while (1)	{
-				// Access current here, before reassigning via strtok
-				//fprintf(stdout,"%s\n", current);
+		// OLD code? maybe get rid of this
+		//  while (1)	{
+		//  		// Access current here, before reassigning via strtok
+		//  		//fprintf(stdout,"%s\n", current);
 
-				if (util_checkContains_r(current, '\n')) break;
-				current=strtok(NULL, " ");
-		}
+		//  		if (util_checkContains_r(current, '\n')) break;
+		//  		current=strtok(NULL, " ");
+		//  }
 	}
 
 	return 1;
@@ -119,6 +123,34 @@ util_parseMath(struct arg *args) {
 	free(args->id_namev);
 	Util_parseMath_return_fail:
 	return 0;
+
+	Util_parseMath_realloc_add:
+	args->idc++;
+	char **id_namev_new=realloc(args->id_namev, sizeof(char *) * args->idc);
+	if (!id_namev_new) {
+		fprintf(stderr, "realloc: reallocation of identifier name vector failed. Code: %d\n", 10);
+		goto Util_parseMath_clean_id_namev_contents;
+	} args->id_namev=id_namev_new;
+	int *id_typev_new=realloc(args->id_typev, sizeof(int) * args->idc);
+	if (!id_typev_new) {
+		fprintf(stderr, "realloc: reallocation of identifier type vector failed. Code: %d\n", 11);
+		goto Util_parseMath_clean_id_namev_contents;
+	} args->id_typev=id_typev_new;
+	size_t *id_sizev_new=realloc(args->id_sizev, sizeof(size_t) * args->idc);
+	if (!id_sizev_new) {
+		fprintf(stderr, "realloc: reallocation of identifier size vector failed. Code: %d\n", 12);
+		goto Util_parseMath_clean_id_namev_contents;
+	} args->id_sizev=id_sizev_new;
+	// Switch for code to go back. 
+	switch (realloc_ret_code) {
+		case 1:
+			goto REALLOC_RET_CODE_1;
+			break;
+		default:
+			fprintf(stderr, "realloc: reallocation return error invalid. Attempting to clean. May not exit successfully. Brace yourself for crash... Code: %d\n", -1);
+			goto Util_parseMath_clean_id_namev_contents;
+	}
+
 }
 
 int 

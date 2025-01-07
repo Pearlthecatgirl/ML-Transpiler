@@ -22,30 +22,75 @@ int util_checkContains_r(const char *string, const char letter);
 int
 util_parseMath(struct arg *args) {
 	char *current;
+
+	// Init identifiers
+	args->idc=1;
+	args->id_namev=malloc(sizeof(char *)*args->idc);
+	if (!args->id_namev) {
+		fprintf(stderr, "Malloc: failed to allocate space for identifier name vector. Code %d", 7);
+		goto Util_parseMath_return_fail;
+	}
+	args->id_typev=malloc(sizeof(int )*args->idc);
+	if (!args->id_typev) {
+		fprintf(stderr, "Malloc: failed to allocate space for identifier type vector. Code %d", 8);
+		goto Util_parseMath_clean_id_namev;
+	}
+	args->id_sizev=malloc(sizeof(size_t)*args->idc);
+	if (!args->id_sizev) {
+		fprintf(stderr, "Malloc: failed to allocate space for identifier type vector. Code %d", 8);
+		goto Util_parseMath_clean_id_typev;
+	}
+	// TODO: clean the malloc later
+
+	args->id_typev[0]=0;
+	args->id_sizev[0]=sizeof(char)*strlen("function")+1;
+	args->id_namev[0]=malloc(args->id_sizev[0]);
+
+	args->id_typev[1]=0;
+	args->id_sizev[1]=sizeof(char)*strlen("print")+1;
+	args->id_namev[1]=malloc(args->id_sizev[1]);
+	strncpy(args->id_namev[0], "function", args->id_sizev[0]);
+	strncpy(args->id_namev[1], "print", args->id_sizev[1]);
+
 	// Outer loop
 	for (int i=0;i<args->script_len;i++) {
-		//current=strtok(args->script[i], " ");
-		if (args->script[i][0]==35) continue; 
+		if (args->script[i][0]==35) continue;  // 35->#
 
-			//fprintf(stdout, "%s, %d", args->script[i], util_checkContains_r(args->script[i], ' '));
 		// Check for a space first before trying to tokenize
 		if (util_checkContains_r(args->script[i], ' ')) {
 			current=strtok(args->script[i], " ");
 			if (!strcmp(current, "function")) {
-					current=strtok(NULL, " ");
-					// Check if it is already an identifier
+				current=strtok(NULL, " ");
+				for (int j=0;j<args->idc;j++) {
+					//fprintf(stdout, "%d,",args->id_namev[i][strlen(args->id_namev[i])]);
+					//for (int j=0;j<9;j++) fprintf(stdout, "current:%d\n", current[j]);
+					//fprintf(stdout, "current:%s:%s:\n", args->id_namev[i], current);
+					// fprintf(stdout, "%d:", current[strlen(current)-1]);
+
+					// Replaces newline with \0 for comparison
+					if (current[strlen(current)-1]=='\n') current[strlen(current)-1]='\0';
+					if (!strcmp(args->id_namev[j], current)) {
+						fprintf(stderr, "! runml: Error \"%s\" is already defined! \n", current);
+						goto Util_parseMath_clean_id_namev_contents;
+					}
+					else {
+					// return for now	
+					fprintf(stdout, "new variable. adding \"%s\" to the identifier registry\n", current);
+					}
+				}
+				// Check if it is already an identifier
 			}
 		// there is no space. just compare it
 		} else {
-				if (!strncmp(args->script[i], "function", strlen("function"))) {
-						if (strlen(args->script[i])>strlen("function")) {
-							fprintf(stderr, "! runml: Error: spotted \"function\" with more letters behind it. Are you missing a space? \n");
-							return 1;
-						} else {
-							fprintf(stderr, "! runml: Error: spotted \"function\" with no identifier behind it. Is this an identifier? \n");
-							return 1;
-						}
-				}
+			if (!strncmp(args->script[i], "function", strlen("function"))) {
+				if (strlen(args->script[i])>strlen("function")) {
+					fprintf(stderr, "! runml: Error: spotted \"function\" with more letters behind it. Are you missing a space? \n");
+					goto Util_parseMath_clean_id_namev_contents;
+				} else {
+					fprintf(stderr, "! runml: Error: spotted \"function\" with no identifier behind it. Is this an identifier? \n");
+					goto Util_parseMath_clean_id_namev_contents;
+					}
+			}
 		}
 
 		/* Only skip the line if the first character is a #. Otherwise we can have such cases:
@@ -63,6 +108,17 @@ util_parseMath(struct arg *args) {
 	}
 
 	return 1;
+
+	Util_parseMath_clean_id_namev_contents:
+	for (int i=args->idc;i>0;i--) free(args->id_namev[i]);
+	Util_parseMath_clean_id_sizev:
+	free(args->id_sizev);
+	Util_parseMath_clean_id_typev:
+	free(args->id_typev);
+	Util_parseMath_clean_id_namev:
+	free(args->id_namev);
+	Util_parseMath_return_fail:
+	return 0;
 }
 
 int 

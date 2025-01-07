@@ -61,27 +61,21 @@ util_parseMath(struct arg *args) {
 			current=strtok(args->script[i], " ");
 			if (!strcmp(current, "function")) {
 				current=strtok(NULL, " ");
+				// Check if it is already an identifier
 				for (int j=0;j<args->idc;j++) {
-					//fprintf(stdout, "%d,",args->id_namev[i][strlen(args->id_namev[i])]);
-					//for (int j=0;j<9;j++) fprintf(stdout, "current:%d\n", current[j]);
-					//fprintf(stdout, "current:%s:%s:\n", args->id_namev[i], current);
-					// fprintf(stdout, "%d:", current[strlen(current)-1]);
-
 					// Replaces newline with \0 for comparison
 					if (current[strlen(current)-1]=='\n') current[strlen(current)-1]='\0';
 					if (!strcmp(args->id_namev[j], current)) {
 						fprintf(stderr, "! runml: Error \"%s\" is already defined! \n", current);
 						goto Util_parseMath_clean_id_namev_contents;
 					}
-					else {
-						// return for now	
-						fprintf(stdout, "new variable. adding \"%s\" to the identifier registry\n", current);
-						realloc_ret_code=1;
-						goto Util_parseMath_realloc_add;
-						REALLOC_RET_CODE_1:
-					}
 				}
-				// Check if it is already an identifier
+				// No new identifier detected. Add it
+				fprintf(stdout, "new variable. adding \"%s\" to the identifier registry\n", current);
+				//fprintf(stdout, "ax: %d\n", j);
+				realloc_ret_code=1;
+				goto Util_parseMath_realloc_add;
+				REALLOC_RET_CODE_1:
 			}
 		// there is no space. just compare it
 		} else {

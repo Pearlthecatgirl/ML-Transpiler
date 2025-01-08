@@ -5,6 +5,14 @@
 
 enum nodeType {Expression, Function, Assignment} nodeType;
 
+const char *definitiones[]={
+	"#included <stdio.h>\n",
+	"int\nmain(void) {\n",
+	"return 0;\n}\n",
+	"printf(",
+	");"
+};
+
 struct arg {
 	char **id_namev;
 	size_t *id_sizev;
@@ -14,6 +22,9 @@ struct arg {
 	char **script;
 	size_t *script_sizev;
 	int script_len;
+
+	char *prefinal_output;
+	char *prefinal_output_functiondef;
 } arg;
 
 int util_checkContains(const char *string, const char *contents);
@@ -21,6 +32,7 @@ int util_checkContains_r(const char *string, const char letter);
 
 int
 util_parseMath(struct arg *args) {
+	
 	char *current;
 	short realloc_ret_code;
 	// Init identifiers
@@ -40,7 +52,16 @@ util_parseMath(struct arg *args) {
 		fprintf(stderr, "Malloc: failed to allocate space for identifier type vector. Code %d", 9);
 		goto Util_parseMath_clean_id_typev;
 	}
-	// TODO: clean the malloc later
+	args->prefinal_output=malloc(sizeof(char)*1);
+	if (!args->prefinal_output) {
+		fprintf(stderr, "Malloc: failed to allocate space for identifier type vector. Code %d", 10);
+		goto Util_parseMath_clean_id_sizev;
+	}
+	args->prefinal_output_functiondef=malloc(sizeof(char)*1);
+	if (!args->prefinal_output_functiondef) {
+		fprintf(stderr, "Malloc: failed to allocate space for identifier type vector. Code %d", 11);
+		goto Util_parseMath_clean_output;
+	}
 
 	args->id_typev[0]=0;
 	args->id_sizev[0]=sizeof(char)*strlen("function")+1;
@@ -76,6 +97,44 @@ util_parseMath(struct arg *args) {
 				realloc_ret_code=1;
 				goto Util_parseMath_realloc_add;
 				REALLOC_RET_CODE_1:
+				// right now, current is the name. Check if there are args
+				if (util_checkContains_r(current, '\n')) {
+					fprintf(stdout, "yes new args\n");
+					while (1) {
+						fprintf(stderr, "%s\n",current);
+						break;
+					}
+				} else {
+					char *realloc_res=realloc(args->prefinal_output_functiondef, sizeof(char)*strlen(current)+sizeof("float (void){\n"));
+					if (!realloc_res) {
+						fprintf(stderr, "Malloc: failed to allocate space for identifier type vector. Code %d", 12);
+					
+					}
+				
+				}
+				
+			
+
+				// test
+				char buf[2048];
+				snprintf(buf, sizeof("float (int,int){\n}"),"float %s(int ", current);
+				fprintf(stdout, "%s", buf);
+			} else if (!strcmp(current, "print")) {
+			
+			} else {
+				// Just expression here
+				//fprintf(stdout, "current: %s", current);
+				//current=strtok(NULL, " ");
+				//fprintf(stderr, "%s : ", current);
+				// Check if it is already an identifier
+				for (int j=0;j<args->idc;j++) {
+					// Replaces newline with \0 for comparison
+					if (current[strlen(current)-1]=='\n') current[strlen(current)-1]='\0';
+					if (!strcmp(args->id_namev[j], current)) {
+						fprintf(stderr, "! runml: Error \"%s\" is already defined! \n", current);
+						goto Util_parseMath_clean_id_namev_contents;
+					}
+				}
 			}
 		// there is no space. just compare it
 		} else {
@@ -86,11 +145,12 @@ util_parseMath(struct arg *args) {
 				} else {
 					fprintf(stderr, "! runml: Error: spotted \"function\" with no identifier behind it. Is this an identifier? \n");
 					goto Util_parseMath_clean_id_namev_contents;
-					}
+				}
 			}
 		}
 
-		/* Only skip the line if the first character is a #. Otherwise we can have such cases:
+		/* *
+		 * Only skip the line if the first character is a #. Otherwise we can have such cases:
 		 * function args # comment <- such line would be skipped
 		 * */
 
@@ -109,6 +169,10 @@ util_parseMath(struct arg *args) {
 
 	Util_parseMath_clean_id_namev_contents:
 	for (int i=args->idc;i>0;i--) free(args->id_namev[i]);
+	Util_parseMath_clean_output_functiondefine:
+	free(args->prefinal_output_functiondef);
+	Util_parseMath_clean_output:
+	free(args->prefinal_output);
 	Util_parseMath_clean_id_sizev:
 	free(args->id_sizev);
 	Util_parseMath_clean_id_typev:

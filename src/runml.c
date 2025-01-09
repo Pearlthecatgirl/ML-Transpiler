@@ -82,10 +82,14 @@ util_parseMath(struct arg *args) {
 			current=strtok(args->script[i], " ");
 			if (!strcmp(current, "function")) {
 				current=strtok(NULL, " ");
+				short has_args=1;
 				// Check if it is already an identifier
 				for (int j=0;j<args->idc;j++) {
 					// Replaces newline with \0 for comparison
-					if (current[strlen(current)-1]=='\n') current[strlen(current)-1]='\0';
+					if (current[strlen(current)-1]=='\n') {
+						current[strlen(current)-1]='\0';
+						has_args=0;
+					}
 					if (!strcmp(args->id_namev[j], current)) {
 						fprintf(stderr, "! runml: Error \"%s\" is already defined! \n", current);
 						goto Util_parseMath_clean_id_namev_contents;
@@ -93,32 +97,46 @@ util_parseMath(struct arg *args) {
 				}
 				// No new identifier detected. Add it
 				fprintf(stdout, "new variable. adding \"%s\" to the identifier registry\n", current);
-				//fprintf(stdout, "ax: %d\n", j);
 				realloc_ret_code=1;
 				goto Util_parseMath_realloc_add;
 				REALLOC_RET_CODE_1:
 				// right now, current is the name. Check if there are args
-				if (util_checkContains_r(current, '\n')) {
-					fprintf(stdout, "yes new args\n");
+				if (has_args) {
+
+					char *realloc_res=realloc(args->prefinal_output_functiondef, sizeof(char)*strlen(current)+sizeof("float (){\n"));
+					if (!realloc_res) {
+						fprintf(stderr, "realloc: failed to reallocate space for output (function definition). Code %d", 13);
+						goto Util_parseMath_clean_id_namev_contents;
+					} args->prefinal_output_functiondef=realloc_res;
+					snprintf(args->prefinal_output_functiondef, sizeof(args->prefinal_output_functiondef) + sizeof("float (){\n")+sizeof(char)*strlen(current),"float %s(",current);
 					while (1) {
-						fprintf(stderr, "%s\n",current);
-						break;
+						current=strtok(NULL, " ");
+						//fprintf(stderr, "float %s \n",current);
+
+						if (util_checkContains_r(current, '\n')) break;
+						else {
+						char *realloc_res=realloc(args->prefinal_output_functiondef, sizeof(char)*strlen(current)+sizeof("int, ")+sizeof(char)*strlen(current));
+						if (!realloc_res) {
+							fprintf(stderr, "realloc: failed to reallocate space for output (function definition). Code %d", 13);
+							goto Util_parseMath_clean_id_namev_contents;
+						} args->prefinal_output_functiondef=realloc_res;
+						snprintf(args->prefinal_output_functiondef, sizeof(args->prefinal_output_functiondef) + sizeof("float (){\n")+sizeof(char)*strlen(current),"%sint%s",args->prefinal_output_functiondef, current);
+						}
 					}
+					fprintf(stdout, "%s",args->prefinal_output_functiondef);
 				} else {
 					char *realloc_res=realloc(args->prefinal_output_functiondef, sizeof(char)*strlen(current)+sizeof("float (void){\n"));
 					if (!realloc_res) {
-						fprintf(stderr, "Malloc: failed to allocate space for identifier type vector. Code %d", 12);
-					
-					}
-				
+						fprintf(stderr, "realloc: failed to reallocate space for output (function definition). Code %d", 13);
+						goto Util_parseMath_clean_id_namev_contents;
+					} args->prefinal_output_functiondef=realloc_res;
+					snprintf(args->prefinal_output_functiondef, sizeof(args->prefinal_output_functiondef) + sizeof("float (void){\n")+sizeof(char)*strlen(current),"float %s(void){\n",current);
+					//fprintf(stdout, "%s",args->prefinal_output_functiondef);
 				}
 				
 			
 
 				// test
-				char buf[2048];
-				snprintf(buf, sizeof("float (int,int){\n}"),"float %s(int ", current);
-				fprintf(stdout, "%s", buf);
 			} else if (!strcmp(current, "print")) {
 			
 			} else {
